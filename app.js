@@ -140,6 +140,61 @@
     return createControlsDiv
   }
 
+  function createEditModal() {
+    var backdrop = document.createElement('div')
+    backdrop.className = 'edit-modal-backdrop edit-modal-hidden'
+    backdrop.id = 'editModalBackdrop'
+    var modal = document.createElement('div')
+    modal.className = 'edit-modal'
+    var title = document.createElement('h2')
+    title.className = 'edit-modal-title'
+    title.textContent = 'Редактировать задачу'
+    var form = document.createElement('div')
+    form.className = 'edit-modal-form'
+    var nameWrap = document.createElement('div')
+    nameWrap.className = 'edit-modal-field'
+    var nameLabel = document.createElement('label')
+    nameLabel.className = 'edit-modal-label'
+    nameLabel.textContent = 'Название'
+    nameLabel.setAttribute('for', 'editModalName')
+    var nameInput = document.createElement('input')
+    nameInput.type = 'text'
+    nameInput.id = 'editModalName'
+    nameInput.className = 'edit-modal-input'
+    nameInput.placeholder = 'Название задачи'
+    nameWrap.appendChild(nameLabel)
+    nameWrap.appendChild(nameInput)
+
+    var dateWrap = document.createElement('div')
+    dateWrap.className = 'edit-modal-field'
+    var dateLabel = document.createElement('label')
+    dateLabel.className = 'edit-modal-label'
+    dateLabel.textContent = 'Дата'
+    dateLabel.setAttribute('for', 'editModalDate')
+    var dateInput = document.createElement('input')
+    dateInput.type = 'date'
+    dateInput.id = 'editModalDate'
+    dateInput.className = 'edit-modal-input'
+    dateWrap.appendChild(dateLabel)
+    dateWrap.appendChild(dateInput)
+
+    var errorSpan = document.createElement('span')
+    errorSpan.className = 'edit-modal-error'
+    errorSpan.id = 'editModalError'
+    var submitBtn = document.createElement('button')
+    submitBtn.type = 'button'
+    submitBtn.className = 'edit-modal-btn'
+    submitBtn.textContent = 'Изменить'
+    form.appendChild(nameWrap)
+    form.appendChild(dateWrap)
+    form.appendChild(errorSpan)
+    form.appendChild(submitBtn)
+    modal.appendChild(title)
+    modal.appendChild(form)
+    backdrop.appendChild(modal)
+    return { backdrop: backdrop, nameInput: nameInput, dateInput: dateInput, errorSpan: errorSpan, submitBtn: submitBtn }
+  }
+
   function closeAllSelect(exceptSelected) {
     var items = document.querySelectorAll('.custom-select-items')
     var selected = document.querySelectorAll('.custom-select-selected')
@@ -205,7 +260,7 @@
 
     var dateSpan = document.createElement('span')
     dateSpan.className = 'todo-item-date'
-    dateSpan.textContent = task.date || '—'
+    dateSpan.textContent = formatDateToRussian(task.date)
 
     var actions = document.createElement('div')
     actions.className = 'todo-item-actions'
@@ -287,11 +342,8 @@
     }
 
     list.sort(function (a, b) {
-      var d1 = a.date || ''
-      var d2 = b.date || ''
-      if (d1 !== d2) return d1.localeCompare(d2)
-      var o1 = a.listNumber!= null ? a.listNumber: 0
-      var o2 = b.listNumber!= null ? b.listNumber: 0
+      var o1 = a.listNumber != null ? a.listNumber : 0
+      var o2 = b.listNumber != null ? b.listNumber : 0
       return o1 - o2
     })
 
@@ -336,6 +388,16 @@
     return y + '-' + m + '-' + day
   }
 
+  function formatDateToRussian(dateStr) {
+    if (!dateStr || !dateStr.trim()) return '—'
+    var parts = dateStr.trim().split('-')
+    if (parts.length !== 3) return dateStr
+    var day = parts[2]
+    var month = parts[1]
+    var year = parts[0]
+    return day + '.' + month + '.' + year
+  }
+
   function hasTaskWithTitle(title) {
     var trimmed = title.trim()
     for (var i = 0; i < tasks.length; i++) {
@@ -362,12 +424,8 @@
     saveTasks()
   }
 
-  //пересчитываем номера после удаления, так как сбивается порядок
   function renumberList() {
     var sorted = tasks.slice().sort(function (a, b) {
-      var d1 = a.date || ''
-      var d2 = b.date || ''
-      if (d1 !== d2) return d1.localeCompare(d2)
       var o1 = a.listNumber != null ? a.listNumber : 0
       var o2 = b.listNumber != null ? b.listNumber : 0
       return o1 - o2
@@ -430,7 +488,7 @@
     myTasks.id = 'myTasksContainer'
 
     var listTittle = document.createElement('p')
-    listTittle.textContent = 'Список задач'
+    listTittle.textContent = 'Задачи'
     listTittle.className = 'todo-form-tittle'
 
     var list = document.createElement('ul')
@@ -440,6 +498,76 @@
 
     main.append(logo, form, controls, myTasks)
     document.body.appendChild(main)
+
+    var editModalRefs = createEditModal()
+    document.body.appendChild(editModalRefs.backdrop)
+    var editBackdrop = editModalRefs.backdrop
+    var editNameInput = editModalRefs.nameInput
+    var editDateInput = editModalRefs.dateInput
+    var editError = editModalRefs.errorSpan
+    var editBtn = editModalRefs.submitBtn
+
+    var currentEditId = null
+
+    function openEditModal(taskId) {
+      var task = tasks.find(function (t) { return String(t.id) === taskId })
+      if (!task) return
+      currentEditId = taskId
+      editNameInput.value = task.title
+      editDateInput.value = task.date || ''
+      editError.textContent = ''
+      editError.classList.remove('edit-modal-error-visible')
+      editBackdrop.classList.remove('edit-modal-hidden')
+      editNameInput.focus()
+    }
+
+    function closeEditModal() {
+      editBackdrop.classList.add('edit-modal-hidden')
+      currentEditId = null
+    }
+
+    function submitEditModal() {
+      var title = editNameInput.value.trim()
+      var date = editDateInput.value.trim()
+      editError.textContent = ''
+      editError.classList.remove('edit-modal-error-visible')
+      if (!title) {
+        editError.textContent = 'Введите название задачи'
+        editError.classList.add('edit-modal-error-visible')
+        editNameInput.focus()
+        return
+      }
+      if (!date) {
+        editError.textContent = 'Выберите дату'
+        editError.classList.add('edit-modal-error-visible')
+        editDateInput.focus()
+        return
+      }
+      var currentTask = tasks.find(function (t) { return String(t.id) === currentEditId })
+      if (currentTask && title !== currentTask.title.trim() && hasTaskWithTitle(title)) {
+        editError.textContent = 'Задача с таким названием уже существует'
+        editError.classList.add('edit-modal-error-visible')
+        editNameInput.focus()
+        return
+      }
+      updateTask(currentEditId, title, date)
+      closeEditModal()
+      renderTasks(list)
+    }
+
+    editBackdrop.addEventListener('click', function (e) {
+      if (e.target === editBackdrop) closeEditModal()
+    })
+    editBtn.addEventListener('click', submitEditModal)
+    editNameInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); submitEditModal() }
+    })
+    editDateInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); submitEditModal() }
+    })
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !editBackdrop.classList.contains('edit-modal-hidden')) closeEditModal()
+    })
 
     loadTasks()
     renderTasks(list)
@@ -501,15 +629,7 @@
         return
       }
       if (e.target.classList.contains('btn-edit')) {
-        var textSpan = li.querySelector('.todo-item-text')
-        var dateSpan = li.querySelector('.todo-item-date')
-        var newTitle = prompt('Новое название:', textSpan.textContent)
-        if (newTitle === null) return
-        newTitle = newTitle.trim()
-        var newDate = prompt('Новая дата (YYYY-MM-DD):', dateSpan.textContent === '—' ? '' : dateSpan.textContent)
-        if (newDate === null) return
-        updateTask(id, newTitle, (newDate && newDate.trim()) || '')
-        renderTasks(list)
+        openEditModal(id)
       }
     })
 
