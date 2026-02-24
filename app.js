@@ -230,7 +230,23 @@
   function deleteTask(id) {
     var numId = Number(id)
     tasks = tasks.filter(function (t) { return t.id !== numId })
+    renumberList()
     saveTasks()
+  }
+
+  //пересчитываем номера после удаления, так как сбивается порядок
+  function renumberList() {
+    var sorted = tasks.slice().sort(function (a, b) {
+      var d1 = a.date || ''
+      var d2 = b.date || ''
+      if (d1 !== d2) return d1.localeCompare(d2)
+      var o1 = a.listNumber != null ? a.listNumber : 0
+      var o2 = b.listNumber != null ? b.listNumber : 0
+      return o1 - o2
+    })
+    sorted.forEach(function (t, i) {
+      t.listNumber = i
+    })
   }
 
   function toggleDone(id) {
