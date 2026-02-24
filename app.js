@@ -164,13 +164,31 @@
     return li
   }
 
-  // рисуем список
+  function renderEmpty(listEl) {
+    var emptyBox = document.createElement('div')
+    emptyBox.className = 'todo-empty'
+    var emptyIcon = document.createElement('img')
+    emptyIcon.src = 'icons/sad_face.svg'
+    emptyIcon.alt = ''
+    emptyIcon.className = 'todo-empty-icon'
+    var emptyText = document.createElement('p')
+    emptyText.className = 'todo-empty-text'
+    emptyText.textContent = 'Тут ничего нет...'
+    emptyBox.appendChild(emptyIcon)
+    emptyBox.appendChild(emptyText)
+    listEl.appendChild(emptyBox)
+  }
+
   function renderTasks(listEl) {
     listEl.innerHTML = ''
     var filtered = getFilteredTasks()
-    filtered.forEach(function (task) {
-      listEl.appendChild(createTaskItem(task))
-    })
+    if (filtered.length === 0) {
+      renderEmpty(listEl)
+    } else {
+      filtered.forEach(function (task) {
+        listEl.appendChild(createTaskItem(task))
+      })
+    }
   }
 
   function getFilteredTasks() {
