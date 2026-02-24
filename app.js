@@ -5,6 +5,23 @@
   var STORAGE_KEY = 'todoListTasks'
   var sortMode = 'custom'
 
+  function initMeta() {
+    var metaCharset = document.createElement('meta')
+    metaCharset.charset = 'UTF-8'
+    document.head.appendChild(metaCharset)
+
+    var metaViewport = document.createElement('meta')
+    metaViewport.name = 'viewport'
+    metaViewport.content = 'width=device-width, initial-scale=1.0, user-scalable=no'
+    document.head.appendChild(metaViewport)
+  }
+
+  function initHeadTitle() {
+    var title = document.createElement('title')
+    title.textContent = 'To-Do List'
+    document.head.appendChild(title)
+  }
+
   function initFavicon() {
     var link = document.createElement('link')
     link.rel = 'icon'
@@ -478,7 +495,12 @@
 
   // собираем страницу и вешаем листенеры
   function buildPage() {
+    //мета тег и тайтл страницы в head
+    initMeta()
+    initHeadTitle()
+    //стили
     initStyles()
+    //favicon
     initFavicon()
 
     var main = document.createElement('main')
