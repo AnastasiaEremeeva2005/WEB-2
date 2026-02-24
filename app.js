@@ -4,6 +4,14 @@
   var tasks = []
   var STORAGE_KEY = 'todoListTasks'
 
+  function initFavicon() {
+    var link = document.createElement('link')
+    link.rel = 'icon'
+    link.type = 'image/png'
+    link.href = 'images/favicon.png'
+    document.head.appendChild(link)
+  }
+
   // подключаем стили через js
   function initStyles() {
     var link = document.createElement('link')
@@ -296,11 +304,16 @@
   // собираем страницу и вешаем листенеры
   function buildPage() {
     initStyles()
+    initFavicon()
 
     var main = document.createElement('main')
     main.className = 'todo-app'
 
-    var title = createEl('h1', 'To-Do List', 'todo-title')
+    var logo = document.createElement('img')
+    logo.src = 'images/full_logo.png'
+    logo.alt = 'To-Do List'
+    logo.className = 'todo-logo'
+    logo.draggable = false
     var form = createForm()
     var controls = createControls()
 
@@ -317,7 +330,7 @@
     list.id = 'todoList'
     myTasks.append(listTittle, list)
 
-    main.append(title, form, controls, myTasks)
+    main.append(logo, form, controls, myTasks)
     document.body.appendChild(main)
 
     loadTasks()
