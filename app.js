@@ -336,10 +336,18 @@
     return y + '-' + m + '-' + day
   }
 
+  function hasTaskWithTitle(title) {
+    var trimmed = title.trim()
+    for (var i = 0; i < tasks.length; i++) {
+      if (tasks[i].title.trim() === trimmed) return true
+    }
+    return false
+  }
+
   function addTask(title, date) {
     tasks.push({
       id: nextId(),
-      title: title,
+      title: title.trim(),
       date: date || getTodayDate(),
       done: false,
       listNumber: nextNumber()
@@ -442,16 +450,22 @@
       var dateEl = document.getElementById('taskDate')
       var title = titleEl.value.trim()
       //показываем ошибку если нет имени задачи
+      var errorSpan = document.body.querySelector('#errorSpan')
+      var taskTitle = document.body.querySelector('#taskTitle')
       if (!title) {
-        var errorSpan = document.body.querySelector('#errorSpan'),
-            taskTitle = document.body.querySelector('#taskTitle')
-        console.log(errorSpan)
         errorSpan.textContent = 'Введите имя вашей задачи в поле для ввода'
         errorSpan.classList.add('visible')
         taskTitle.focus()
         return
       }
+      if (hasTaskWithTitle(title)) {
+        errorSpan.textContent = 'Задача с таким названием уже существует'
+        errorSpan.classList.add('visible')
+        taskTitle.focus()
+        return
+      }
       addTask(title, dateEl.value || '')
+      errorSpan.classList.remove('visible')
       titleEl.value = ''
       dateEl.value = ''
       renderTasks(list)
