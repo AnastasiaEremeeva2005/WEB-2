@@ -13,6 +13,11 @@ body {
   background-color: #f5f5f5;
 }
 
+body.touch-dragging {
+  overflow: hidden;
+  touch-action: none;
+}
+
 .todo-app {
   max-width: 800px;
   margin: 0 auto;
@@ -60,6 +65,7 @@ body {
 .todo-form input[type="text"] {
   flex: 1;
   min-width: 120px;
+  min-height: 42px;
 }
 
 .todo-form input[type="date"] {
@@ -91,14 +97,87 @@ body {
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 16px;
+  min-height: 42px;
 }
 
-.todo-controls select {
-  padding: 8px 12px;
+.custom-select {
+  position: relative;
+  font-family: inherit;
+}
+
+.custom-select-native {
+  display: none;
+}
+
+.custom-select-selected {
+  padding: 8px 32px 8px 12px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 16px;
   min-width: 120px;
+  background-color: white;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.custom-select-selected:hover {
+  border-color: #999;
+}
+
+.custom-select-selected-text {
+  display: block;
+  padding-right: 24px;
+}
+
+.custom-select-arrow {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  pointer-events: none;
+  transition: transform 0.2s;
+}
+
+.custom-select-selected.custom-select-arrow-active .custom-select-arrow {
+  transform: rotate(180deg);
+}
+
+.custom-select-items {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  margin-top: 2px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.custom-select-hide {
+  display: none;
+}
+
+.custom-select-items div {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 16px;
+}
+
+.custom-select-items div:last-child {
+  border-bottom: none;
+}
+
+.custom-select-items div:hover,
+.custom-select-item-active {
+  background-color: #e7f1ff;
 }
 
 .todo-list {
@@ -151,7 +230,7 @@ body {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
 }
 
 .todo-item:active {
@@ -159,7 +238,17 @@ body {
 }
 
 .todo-item.dragging {
-  opacity: 0.7;
+  opacity: 0.95;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.todo-drag-placeholder {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  pointer-events: none;
 }
 
 .todo-item.done {
@@ -257,6 +346,9 @@ body {
   .todo-logo{
     max-width: 300px;
   }
+  .todo-form, .todo-controls {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 480px) {
@@ -267,9 +359,6 @@ body {
     padding: 12px;
   }
 
-  .todo-form {
-    flex-direction: column;
-  }
 
   .todo-form input[type="text"],
   .todo-form input[type="date"] {
@@ -279,6 +368,7 @@ body {
   .todo-item-row{
     flex-direction: column;
     align-items: start;
+    gap: 8px;
   }
   .todo-item-text{
     max-width: 100%;

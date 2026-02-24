@@ -94,6 +94,7 @@
 
     var filter = document.createElement('select')
     filter.id = 'filterSelect'
+    filter.className = 'custom-select-native'
     var all = document.createElement('option')
     all.value = 'all'
     all.textContent = 'Все'
@@ -105,9 +106,90 @@
     notDone.textContent = 'Невыполненные'
     filter.append(all, done, notDone)
 
-    wrap.append(search, filter)
+    var customSelectWrap = document.createElement('div')
+    customSelectWrap.className = 'custom-select'
+    customSelectWrap.style.minWidth = '160px'
+    customSelectWrap.appendChild(filter)
+
+    var selectedDiv = document.createElement('div')
+    selectedDiv.className = 'custom-select-selected'
+    var selectedText = document.createElement('span')
+    selectedText.className = 'custom-select-selected-text'
+    selectedText.textContent = filter.options[filter.selectedIndex].textContent
+    var arrowImg = document.createElement('img')
+    arrowImg.src = 'icons/arrow.svg'
+    arrowImg.alt = ''
+    arrowImg.className = 'custom-select-arrow'
+    selectedDiv.appendChild(selectedText)
+    selectedDiv.appendChild(arrowImg)
+    customSelectWrap.appendChild(selectedDiv)
+
+    var itemsDiv = document.createElement('div')
+    itemsDiv.className = 'custom-select-items custom-select-hide'
+    for (var i = 0; i < filter.options.length; i++) {
+      var optDiv = document.createElement('div')
+      optDiv.textContent = filter.options[i].textContent
+      optDiv.dataset.index = String(i)
+      if (i === filter.selectedIndex) optDiv.classList.add('custom-select-item-active')
+      itemsDiv.appendChild(optDiv)
+    }
+    customSelectWrap.appendChild(itemsDiv)
+
+    wrap.append(search, customSelectWrap)
     createControlsDiv.append(createControlsTittle, wrap)
     return createControlsDiv
+  }
+
+  function closeAllSelect(exceptSelected) {
+    var items = document.querySelectorAll('.custom-select-items')
+    var selected = document.querySelectorAll('.custom-select-selected')
+    var keepOpenItems = exceptSelected && exceptSelected.nextElementSibling
+    for (var i = 0; i < selected.length; i++) {
+      if (selected[i] !== exceptSelected) {
+        selected[i].classList.remove('custom-select-arrow-active')
+      }
+    }
+    for (var j = 0; j < items.length; j++) {
+      if (items[j] !== keepOpenItems) {
+        items[j].classList.add('custom-select-hide')
+      }
+    }
+  }
+
+  function initCustomSelect() {
+    var wrap = document.querySelector('.custom-select')
+    if (!wrap) return
+    var sel = wrap.querySelector('select')
+    var selectedDiv = wrap.querySelector('.custom-select-selected')
+    var itemsDiv = wrap.querySelector('.custom-select-items')
+    if (!sel || !selectedDiv || !itemsDiv) return
+
+    selectedDiv.addEventListener('click', function (e) {
+      e.stopPropagation()
+      closeAllSelect(this)
+      itemsDiv.classList.toggle('custom-select-hide')
+      selectedDiv.classList.toggle('custom-select-arrow-active')
+    })
+
+    var optionDivs = itemsDiv.querySelectorAll('div')
+    for (var i = 0; i < optionDivs.length; i++) {
+      optionDivs[i].addEventListener('click', function (e) {
+        var idx = Number(this.dataset.index)
+        sel.selectedIndex = idx
+        selectedDiv.querySelector('.custom-select-selected-text').textContent = this.textContent
+        for (var k = 0; k < optionDivs.length; k++) {
+          optionDivs[k].classList.remove('custom-select-item-active')
+        }
+        this.classList.add('custom-select-item-active')
+        itemsDiv.classList.add('custom-select-hide')
+        selectedDiv.classList.remove('custom-select-arrow-active')
+        sel.dispatchEvent(new Event('change', { bubbles: true }))
+      })
+    }
+
+    document.addEventListener('click', function () {
+      closeAllSelect(null)
+    })
   }
 
   function createTaskItem(task) {
@@ -378,7 +460,8 @@
     // подтверждаем форму и добавляем задачу
     form.addEventListener('submit', createNewTask)
 
-    // при поиске и смене фильтра перерисовываем
+    initCustomSelect()
+
     var searchEl = document.getElementById('searchInput')
     var filterEl = document.getElementById('filterSelect')
     function refreshList() {
@@ -416,36 +499,178 @@
       }
     })
 
-    // драг энд дроп
     var draggedId = null
+    var mouseDragEl = null
+    var mousePlaceholder = null
+    var mouseOffsetX = 0
+    var mouseOffsetY = 0
+    var emptyDragImage = null
+
+    function clearMouseDrag() {
+      if (mouseDragEl) {
+        mouseDragEl.classList.remove('dragging')
+        mouseDragEl.style.position = ''
+        mouseDragEl.style.left = ''
+        mouseDragEl.style.top = ''
+        mouseDragEl.style.width = ''
+        mouseDragEl.style.zIndex = ''
+      }
+      if (mousePlaceholder && mousePlaceholder.parentNode) {
+        mousePlaceholder.parentNode.removeChild(mousePlaceholder)
+      }
+      mousePlaceholder = null
+      mouseDragEl = null
+    }
+
     list.addEventListener('dragstart', function (e) {
       var li = e.target.closest('.todo-item')
       if (!li) return
       draggedId = li.dataset.id
+      mouseDragEl = li
       li.classList.add('dragging')
       e.dataTransfer.effectAllowed = 'move'
       e.dataTransfer.setData('text/plain', draggedId)
+      //удаляем картинку элемента от drag ивента, чтоб не дублировать ее
+      if (!emptyDragImage) {
+        emptyDragImage = new Image()
+        emptyDragImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      }
+      e.dataTransfer.setDragImage(emptyDragImage, 0, 0)
+      //
+      var rect = li.getBoundingClientRect()
+      mouseOffsetX = e.clientX - rect.left
+      mouseOffsetY = e.clientY - rect.top
+      mousePlaceholder = document.createElement('li')
+      mousePlaceholder.className = 'todo-drag-placeholder'
+      mousePlaceholder.style.height = rect.height + 'px'
+      mousePlaceholder.style.marginBottom = '8px'
+      list.insertBefore(mousePlaceholder, li)
+      li.style.position = 'fixed'
+      li.style.width = rect.width + 'px'
+      li.style.zIndex = '9999'
+      li.style.left = (e.clientX - mouseOffsetX) + 'px'
+      li.style.top = (e.clientY - mouseOffsetY) + 'px'
     })
     list.addEventListener('dragend', function (e) {
-      var li = e.target.closest('.todo-item')
-      if (li) li.classList.remove('dragging')
+      clearMouseDrag()
       draggedId = null
     })
     list.addEventListener('dragover', function (e) {
       e.preventDefault()
       e.dataTransfer.dropEffect = 'move'
+      if (mouseDragEl) {
+        mouseDragEl.style.left = (e.clientX - mouseOffsetX) + 'px'
+        mouseDragEl.style.top = (e.clientY - mouseOffsetY) + 'px'
+      }
     })
-
     list.addEventListener('drop', function (e) {
       e.preventDefault()
-      var li = e.target.closest('.todo-item')
-      if (!li || !draggedId || li.dataset.id === draggedId) return
+      if (!draggedId) return
+      var dropLi = null
+      var elements = document.elementsFromPoint(e.clientX, e.clientY)
+      for (var i = 0; i < elements.length; i++) {
+        var el = elements[i]
+        if (el.closest && el.closest('.todo-item') === mouseDragEl) continue
+        var taskItem = el.closest ? el.closest('.todo-item') : null
+        if (taskItem && taskItem.dataset.id !== draggedId) {
+          dropLi = taskItem
+          break
+        }
+      }
+      if (!dropLi) return
       var all = list.querySelectorAll('.todo-item')
-      var idx = Array.prototype.indexOf.call(all, li)
+      var idx = Array.prototype.indexOf.call(all, dropLi)
       if (idx === -1) return
       moveTask(draggedId, idx)
       renderTasks(list)
     })
+
+    var touchStartX = 0
+    var touchStartY = 0
+    var touchDraggedId = null
+    var touchDraggedEl = null
+    var touchPlaceholder = null
+    var touchOffsetX = 0
+    var touchOffsetY = 0
+
+    function clearTouchDrag() {
+      if (touchDraggedEl) {
+        touchDraggedEl.classList.remove('dragging')
+        touchDraggedEl.style.position = ''
+        touchDraggedEl.style.left = ''
+        touchDraggedEl.style.top = ''
+        touchDraggedEl.style.width = ''
+        touchDraggedEl.style.zIndex = ''
+      }
+      if (touchPlaceholder && touchPlaceholder.parentNode) {
+        touchPlaceholder.parentNode.removeChild(touchPlaceholder)
+      }
+      touchPlaceholder = null
+      document.body.classList.remove('touch-dragging')
+      touchDraggedId = null
+      touchDraggedEl = null
+    }
+
+    list.addEventListener('touchstart', function (e) {
+      if (e.target.closest('button') || e.target.closest('.todo-item-actions')) return
+      var li = e.target.closest('.todo-item')
+      if (!li) return
+      touchDraggedId = li.dataset.id
+      touchDraggedEl = li
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+    }, { passive: true })
+
+    list.addEventListener('touchmove', function (e) {
+      if (!touchDraggedEl) return
+      var t = e.touches[0]
+      var y = t.clientY
+      var x = t.clientX
+      if (!touchPlaceholder && Math.abs(y - touchStartY) > 10) {
+        touchDraggedEl.classList.add('dragging')
+        document.body.classList.add('touch-dragging')
+        var rect = touchDraggedEl.getBoundingClientRect()
+        touchOffsetX = touchStartX - rect.left
+        touchOffsetY = touchStartY - rect.top
+        touchPlaceholder = document.createElement('li')
+        touchPlaceholder.className = 'todo-drag-placeholder'
+        touchPlaceholder.style.height = rect.height + 'px'
+        touchPlaceholder.style.marginBottom = '8px'
+        list.insertBefore(touchPlaceholder, touchDraggedEl)
+        touchDraggedEl.style.position = 'fixed'
+        touchDraggedEl.style.width = rect.width + 'px'
+        touchDraggedEl.style.zIndex = '9999'
+      }
+      if (touchPlaceholder) {
+        touchDraggedEl.style.left = (x - touchOffsetX) + 'px'
+        touchDraggedEl.style.top = (y - touchOffsetY) + 'px'
+        e.preventDefault()
+      }
+    }, { passive: false })
+
+    list.addEventListener('touchend', function (e) {
+      if (!touchDraggedId || !touchDraggedEl) return
+      var wasDragging = !!touchPlaceholder
+      var idToDrop = touchDraggedId
+      clearTouchDrag()
+      if (wasDragging && e.changedTouches[0]) {
+        var touch = e.changedTouches[0]
+        var el = document.elementFromPoint(touch.clientX, touch.clientY)
+        var dropLi = el && el.closest ? el.closest('.todo-item') : null
+        if (dropLi && dropLi.dataset.id !== idToDrop) {
+          var all = list.querySelectorAll('.todo-item')
+          var idx = Array.prototype.indexOf.call(all, dropLi)
+          if (idx !== -1) {
+            moveTask(idToDrop, idx)
+            renderTasks(list)
+          }
+        }
+      }
+    }, { passive: true })
+
+    list.addEventListener('touchcancel', function () {
+      clearTouchDrag()
+    }, { passive: true })
   }
 
   buildPage()
