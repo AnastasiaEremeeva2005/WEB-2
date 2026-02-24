@@ -139,6 +139,70 @@ body.touch-dragging {
   margin: 0px;
 }
 
+.todo-list-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.todo-sort-wrap {
+  position: relative;
+}
+
+.todo-sort-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  user-select: none;
+}
+
+.todo-sort-trigger:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.todo-sort-trigger-text {
+  font-size: 14px;
+  color: #000000;
+}
+
+.todo-sort-trigger-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.todo-sort-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.todo-sort-dropdown.todo-sort-dropdown-hide {
+  display: none;
+}
+
+.todo-sort-option {
+  padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.todo-sort-option:hover {
+  background-color: #f0f0f0;
+}
+
 .todo-form {
   display: flex;
   flex-wrap: wrap;

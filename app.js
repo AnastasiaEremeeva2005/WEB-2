@@ -3,6 +3,7 @@
 
   var tasks = []
   var STORAGE_KEY = 'todoListTasks'
+  var sortMode = 'custom'
 
   function initFavicon() {
     var link = document.createElement('link')
@@ -18,13 +19,6 @@
     link.rel = 'stylesheet'
     link.href = 'styles.css'
     document.head.appendChild(link)
-  }
-
-  function createEl(tag, text, className) {
-    var el = document.createElement(tag)
-    if (text) el.textContent = text
-    if (className) el.className = className
-    return el
   }
 
   function deleteError(textContent) {
@@ -211,7 +205,7 @@
     }
   }
 
-  function initCustomSelect() {
+  function initCustomSelect(onOpenCallback) {
     var wrap = document.querySelector('.custom-select')
     if (!wrap) return
     var sel = wrap.querySelector('select')
@@ -221,6 +215,7 @@
 
     selectedDiv.addEventListener('click', function (e) {
       e.stopPropagation()
+      if (onOpenCallback) onOpenCallback()
       closeAllSelect(this)
       itemsDiv.classList.toggle('custom-select-hide')
       selectedDiv.classList.toggle('custom-select-arrow-active')
@@ -252,7 +247,7 @@
     li.className = 'todo-item'
     if (task.done) li.classList.add('done')
     li.dataset.id = String(task.id)
-    li.draggable = true
+    li.draggable = sortMode === 'custom'
 
     var textSpan = document.createElement('span')
     textSpan.className = 'todo-item-text'
@@ -341,11 +336,25 @@
       list = list.filter(function (t) { return t.title.toLowerCase().indexOf(lower) !== -1 })
     }
 
-    list.sort(function (a, b) {
-      var o1 = a.listNumber != null ? a.listNumber : 0
-      var o2 = b.listNumber != null ? b.listNumber : 0
-      return o1 - o2
-    })
+    if (sortMode === 'dateAsc') {
+      list.sort(function (a, b) {
+        var d1 = a.date || ''
+        var d2 = b.date || ''
+        return d1.localeCompare(d2)
+      })
+    } else if (sortMode === 'dateDesc') {
+      list.sort(function (a, b) {
+        var d1 = a.date || ''
+        var d2 = b.date || ''
+        return d2.localeCompare(d1)
+      })
+    } else {
+      list.sort(function (a, b) {
+        var o1 = a.listNumber != null ? a.listNumber : 0
+        var o2 = b.listNumber != null ? b.listNumber : 0
+        return o1 - o2
+      })
+    }
 
     return list
   }
@@ -487,6 +496,9 @@
     myTasks.className = 'todo-flex-container'
     myTasks.id = 'myTasksContainer'
 
+    var listHeader = document.createElement('div')
+    listHeader.className = 'todo-list-header'
+
     var listTittle = document.createElement('p')
     listTittle.textContent = 'Задачи'
     listTittle.className = 'todo-form-tittle'
@@ -494,7 +506,67 @@
     var list = document.createElement('ul')
     list.className = 'todo-list'
     list.id = 'todoList'
-    myTasks.append(listTittle, list)
+
+    var sortLabels = { custom: 'По номеру', dateAsc: 'Сначала старые', dateDesc: 'Сначала новые' }
+    var sortWrap = document.createElement('div')
+    sortWrap.className = 'todo-sort-wrap'
+    var sortTrigger = document.createElement('div')
+    sortTrigger.className = 'todo-sort-trigger'
+    sortTrigger.id = 'sortTrigger'
+    var sortTriggerText = document.createElement('span')
+    sortTriggerText.className = 'todo-sort-trigger-text'
+    sortTriggerText.textContent = 'Сортировка: ' + sortLabels[sortMode]
+    var sortTriggerIcon = document.createElement('img')
+    sortTriggerIcon.src = 'icons/sorting.svg'
+    sortTriggerIcon.alt = ''
+    sortTriggerIcon.className = 'todo-sort-trigger-icon'
+    sortTrigger.appendChild(sortTriggerText)
+    sortTrigger.appendChild(sortTriggerIcon)
+
+    var sortDropdown = document.createElement('div')
+    sortDropdown.className = 'todo-sort-dropdown todo-sort-dropdown-hide'
+    var sortOptCustom = document.createElement('div')
+    sortOptCustom.className = 'todo-sort-option'
+    sortOptCustom.textContent = 'По номеру'
+    sortOptCustom.dataset.mode = 'custom'
+    var sortOptDateAsc = document.createElement('div')
+    sortOptDateAsc.className = 'todo-sort-option'
+    sortOptDateAsc.textContent = 'Сначала старые'
+    sortOptDateAsc.dataset.mode = 'dateAsc'
+    var sortOptDateDesc = document.createElement('div')
+    sortOptDateDesc.className = 'todo-sort-option'
+    sortOptDateDesc.textContent = 'Сначала новые'
+    sortOptDateDesc.dataset.mode = 'dateDesc'
+    sortDropdown.appendChild(sortOptCustom)
+    sortDropdown.appendChild(sortOptDateAsc)
+    sortDropdown.appendChild(sortOptDateDesc)
+
+    sortWrap.appendChild(sortTrigger)
+    sortWrap.appendChild(sortDropdown)
+    listHeader.appendChild(listTittle)
+    listHeader.appendChild(sortWrap)
+    myTasks.append(listHeader, list)
+
+    sortTrigger.addEventListener('click', function (e) {
+      e.stopPropagation()
+      closeAllSelect()
+      sortDropdown.classList.toggle('todo-sort-dropdown-hide')
+    })
+    function closeSortDropdown() {
+      sortDropdown.classList.add('todo-sort-dropdown-hide')
+    }
+    function setSortMode(mode) {
+      sortMode = mode
+      sortTriggerText.textContent = 'Сортировка: ' + sortLabels[sortMode]
+      closeSortDropdown()
+      renderTasks(list)
+    }
+    sortOptCustom.addEventListener('click', function () { setSortMode('custom') })
+    sortOptDateAsc.addEventListener('click', function () { setSortMode('dateAsc') })
+    sortOptDateDesc.addEventListener('click', function () { setSortMode('dateDesc') })
+    document.addEventListener('click', function (e) {
+      if (!sortWrap.contains(e.target)) closeSortDropdown()
+    })
 
     main.append(logo, form, controls, myTasks)
     document.body.appendChild(main)
@@ -602,7 +674,7 @@
     // подтверждаем форму и добавляем задачу
     form.addEventListener('submit', createNewTask)
 
-    initCustomSelect()
+    initCustomSelect(closeSortDropdown)
 
     var searchEl = document.getElementById('searchInput')
     var filterEl = document.getElementById('filterSelect')
@@ -657,6 +729,7 @@
     }
 
     list.addEventListener('dragstart', function (e) {
+      if (sortMode !== 'custom') return
       var li = e.target.closest('.todo-item')
       if (!li) return
       draggedId = li.dataset.id
@@ -746,6 +819,7 @@
     }
 
     list.addEventListener('touchstart', function (e) {
+      if (sortMode !== 'custom') return
       if (e.target.closest('button') || e.target.closest('.todo-item-actions')) return
       var li = e.target.closest('.todo-item')
       if (!li) return
