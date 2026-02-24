@@ -120,20 +120,32 @@
     var actions = document.createElement('div')
     actions.className = 'todo-item-actions'
 
+    function iconImg(src, alt) {
+      var img = document.createElement('img')
+      img.src = src
+      img.alt = alt
+      img.className = 'todo-btn-icon'
+      return img
+    }
+
     var btnDone = document.createElement('button')
     btnDone.type = 'button'
-    btnDone.textContent = task.done ? 'Отменить' : 'Готово'
     btnDone.className = 'btn-done'
+    var doneLabel = task.done ? 'Отменить' : 'Готово'
+    btnDone.title = doneLabel
+    btnDone.appendChild(iconImg(task.done ? 'icons/cancel.svg' : 'icons/confirm.svg', doneLabel))
 
     var btnEdit = document.createElement('button')
     btnEdit.type = 'button'
-    btnEdit.textContent = 'Изменить'
     btnEdit.className = 'btn-edit'
+    btnEdit.title = 'Изменить'
+    btnEdit.appendChild(iconImg('icons/pencil.svg', 'Изменить'))
 
     var btnDelete = document.createElement('button')
     btnDelete.type = 'button'
-    btnDelete.textContent = 'Удалить'
     btnDelete.className = 'btn-delete'
+    btnDelete.title = 'Удалить'
+    btnDelete.appendChild(iconImg('icons/trash.svg', 'Удалить'))
 
     actions.append(btnDone, btnEdit, btnDelete)
     var row = document.createElement('div')
